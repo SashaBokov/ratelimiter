@@ -1,0 +1,20 @@
+# Mac OS X files
+.DS_Store
+
+# Binaries for programs and plugins
+*.exe
+*.dll
+*.so
+*.dylib
+*.db
+
+# IDE preferences folders
+/.vscode
+/.vs
+.idea/
+node_modules
+output
+
+# Depependenci
+/vendor
+.env
