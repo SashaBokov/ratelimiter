@@ -1,14 +1,19 @@
 package ratelimiter
 
 import (
+	"github.com/jonboulle/clockwork"
 	"testing"
 	"time"
 )
 
 func TestRateLimiter_MessagesPerSecond(t *testing.T) {
-	rl := New(5, 5, 1)
-	rl.Start()
-	time.Sleep(time.Second) // Let's wait for the initial replenishment
+	clock := clockwork.NewFakeClock()
+	rl := New(5, 5, time.Second)
+	rl.lastUpdate = clock.Now()
+
+	clock.Advance(time.Second * 2)
+	rl.lastUpdate = clock.Now()
+
 	passed := 0
 
 	for i := 0; i < 5; i++ {
@@ -24,7 +29,7 @@ func TestRateLimiter_MessagesPerSecond(t *testing.T) {
 		t.Logf("All 5 messages were successfully allowed")
 	}
 
-	// Checking that the next message will be blocked
+	clock.Advance(time.Second)
 	if rl.IsAllow() {
 		t.Error("Expected to block the 6th message, but it was allowed")
 	} else {
@@ -33,9 +38,13 @@ func TestRateLimiter_MessagesPerSecond(t *testing.T) {
 }
 
 func TestRateLimiter_RequestsPerMinute(t *testing.T) {
+	fakeClock := clockwork.NewFakeClock()
 	rl := New(10000, 10000, time.Minute)
-	rl.Start()
-	time.Sleep(time.Second) // Let's wait for the initial replenishment
+	rl.lastUpdate = fakeClock.Now()
+
+	fakeClock.Advance(time.Minute)
+	rl.lastUpdate = fakeClock.Now()
+
 	passed := 0
 
 	for i := 0; i < 10000; i++ {
@@ -50,7 +59,6 @@ func TestRateLimiter_RequestsPerMinute(t *testing.T) {
 		t.Logf("All 10000 requests were successfully allowed")
 	}
 
-	// Checking that the next request will be blocked
 	if rl.IsAllow() {
 		t.Error("Expected to block the 10001st request, but it was allowed")
 	} else {
@@ -59,9 +67,13 @@ func TestRateLimiter_RequestsPerMinute(t *testing.T) {
 }
 
 func TestRateLimiter_TransactionsPerDay(t *testing.T) {
-	rl := New(3, 3, time.Hour*24)
-	rl.Start()
-	time.Sleep(time.Second) // Let's wait for the initial replenishment
+	fakeClock := clockwork.NewFakeClock()
+	rl := New(3, 3, 24*time.Hour)
+	rl.lastUpdate = fakeClock.Now()
+
+	fakeClock.Advance(24 * time.Hour)
+	rl.lastUpdate = fakeClock.Now()
+
 	passed := 0
 
 	for i := 0; i < 3; i++ {
@@ -77,7 +89,6 @@ func TestRateLimiter_TransactionsPerDay(t *testing.T) {
 		t.Logf("All 3 transactions were successfully allowed")
 	}
 
-	// Checking that the next transaction will be blocked
 	if rl.IsAllow() {
 		t.Error("Expected to block the 4th transaction, but it was allowed")
 	} else {

@@ -7,20 +7,22 @@ import (
 
 // RateLimiter structure for storing rate limiter data.
 type RateLimiter struct {
-	rate     int
-	bucket   int
-	max      int
-	interval time.Duration
-	mu       sync.Mutex
+	rate       int
+	bucket     int
+	max        int
+	interval   time.Duration
+	lastUpdate time.Time
+	mu         sync.Mutex
 }
 
 // New created new RateLimiter.
 func New(rate, max int, interval time.Duration) *RateLimiter {
 	return &RateLimiter{
-		rate:     rate,
-		max:      max,
-		bucket:   max,
-		interval: interval,
+		rate:       rate,
+		max:        max,
+		bucket:     max,
+		interval:   interval,
+		lastUpdate: time.Now(),
 	}
 }
 
@@ -29,31 +31,23 @@ func (rl *RateLimiter) IsAllow() bool {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
 
+	now := time.Now()
+	elapsed := now.Sub(rl.lastUpdate)
+
+	if elapsed >= rl.interval {
+		tokensToAdd := (int(elapsed / rl.interval)) * rl.rate
+		if tokensToAdd > 0 {
+			rl.bucket += tokensToAdd
+			if rl.bucket > rl.max {
+				rl.bucket = rl.max
+			}
+			rl.lastUpdate = now
+		}
+	}
+
 	if rl.bucket > 0 {
 		rl.bucket--
 		return true
 	}
 	return false
-}
-
-// refill periodically adds tokens to the jar until it reaches its maximum capacity.
-func (rl *RateLimiter) refill() {
-	ticker := time.NewTicker(rl.interval)
-	defer ticker.Stop()
-
-	for range ticker.C {
-		rl.mu.Lock()
-		if rl.bucket < rl.max {
-			rl.bucket += rl.rate
-			if rl.bucket > rl.max {
-				rl.bucket = rl.max
-			}
-		}
-		rl.mu.Unlock()
-	}
-}
-
-// Start starts the process of refilling tokens.
-func (rl *RateLimiter) Start() {
-	go rl.refill()
 }
