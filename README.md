@@ -29,7 +29,6 @@ To limit a user from sending more than 5 messages per second:
 
 ```go
 rl := ratelimiter.New(5, 5, time.Second)
-rl.Start()
 
 // Simulating message sending
 for i := 0; i < 5; i++ {
@@ -50,7 +49,6 @@ To prevent an IP address from making more than 10,000 requests per minute:
 
 ```go
 rl := ratelimiter.New(10000, 10000, time.Minute)
-rl.Start()
 
 // Simulating requests
 for i := 0; i < 10000; i++ {
@@ -71,7 +69,6 @@ To allow a user to have no more than 3 failed card transactions per day:
 
 ```go
 rl := ratelimiter.New(3, 3, 24*time.Hour)
-rl.Start()
 
 // Simulating transactions
 for i := 0; i < 3; i++ {
